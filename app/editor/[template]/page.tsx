@@ -13,7 +13,7 @@ import { ExperienceForm } from "@/components/experience-form"
 import { EducationForm } from "@/components/education-form"
 import { SkillsForm } from "@/components/skills-form"
 import { useToast } from "@/hooks/use-toast"
-import html2canvas from "html2canvas"
+import html2canvas from "html2canvas-pro"
 import jsPDF from "jspdf"
 
 export default function EditorPage() {

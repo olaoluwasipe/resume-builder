@@ -45,6 +45,7 @@
     "date-fns": "4.1.0",
     "embla-carousel-react": "8.5.2",
     "html2canvas": "latest",
+    "html2canvas-pro": "^1.5.8",
     "input-otp": "1.4.2",
     "jspdf": "latest",
     "lucide-react": "^0.484.0",
