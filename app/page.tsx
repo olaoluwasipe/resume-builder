@@ -27,7 +27,7 @@ export default function Home() {
               Choose from proven templates, edit with ease, and download your perfect resume
             </p>
             <Link href="/templates">
-              <Button size="lg" className="gap-2 cursor-pointer">
+              <Button size="lg" className="gap-2">
                 Get Started <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>

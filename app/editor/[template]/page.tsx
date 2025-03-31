@@ -6,15 +6,14 @@ import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
-import { Save, Download, Printer, ArrowLeft, ArrowRight } from "lucide-react"
+import { Save, Download, Printer, ArrowLeft, ArrowRight, Loader2 } from "lucide-react"
 import { ResumePreview } from "@/components/resume-preview"
 import { PersonalInfoForm } from "@/components/personal-info-form"
 import { ExperienceForm } from "@/components/experience-form"
 import { EducationForm } from "@/components/education-form"
 import { SkillsForm } from "@/components/skills-form"
+import { ShareModal } from "@/components/share-modal"
 import { useToast } from "@/hooks/use-toast"
-import html2canvas from "html2canvas-pro"
-import jsPDF from "jspdf"
 
 export default function EditorPage() {
   const params = useParams()
@@ -27,6 +26,8 @@ export default function EditorPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [progress, setProgress] = useState(25)
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
+  const [pdfGenerationProgress, setPdfGenerationProgress] = useState(0)
   const [resumeData, setResumeData] = useState({
     personal: {
       jobTitle: "Service Designer",
@@ -90,8 +91,12 @@ export default function EditorPage() {
     })
   }
 
+  // Update the handleDownload function to fix the scaling issue and add progress indicator
   const handleDownload = async () => {
     if (!resumePreviewRef.current) return
+
+    setIsGeneratingPDF(true)
+    setPdfGenerationProgress(10)
 
     toast({
       title: "Preparing download",
@@ -99,49 +104,85 @@ export default function EditorPage() {
     })
 
     try {
-      // Create a PDF document
+      // Import jsPDF with html capability
+      setPdfGenerationProgress(20)
+      const { jsPDF } = await import("jspdf")
+      await import("jspdf-html2canvas-pro")
+      setPdfGenerationProgress(30)
+
+      // Create a PDF document with A4 dimensions
       const pdf = new jsPDF({
         orientation: "portrait",
         unit: "mm",
-        format: "a4",
+        format: "a4", // A4 is 210mm × 297mm
+        putOnlyUsedFonts: true,
+        floatPrecision: 16, // or "smart", preserves precision for calculations
       })
 
-      // Capture the first page
-      const canvas = await html2canvas(resumePreviewRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      })
+      // For each page in the resume
+      for (let i = 1; i <= totalPages; i++) {
+        // Set current page to capture
+        setCurrentPage(i)
 
-      const imgData = canvas.toDataURL("image/png")
-      const pdfWidth = pdf.internal.pageSize.getWidth()
-      const pdfHeight = pdf.internal.pageSize.getHeight()
-      const imgWidth = canvas.width
-      const imgHeight = canvas.height
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight)
-      const imgX = (pdfWidth - imgWidth * ratio) / 2
-      const imgY = 0
+        // Update progress based on current page
+        const baseProgress = 30
+        const progressPerPage = 60 / totalPages
+        setPdfGenerationProgress(baseProgress + Math.round(progressPerPage * (i - 1)))
 
-      pdf.addImage(imgData, "PNG", imgX, imgY, imgWidth * ratio, imgHeight * ratio)
+        // Wait for the page to render
+        await new Promise((resolve) => setTimeout(resolve, 800))
 
-      // If there are multiple pages, add them
-      if (totalPages > 1) {
-        // In a real app, we would capture each page
-        // For this demo, we'll just add a second page with a message
-        pdf.addPage()
-        pdf.setFontSize(16)
-        pdf.text("Additional resume pages would be added here", 20, 20)
+        // Get the content to convert
+        const element = resumePreviewRef.current
+
+        // Add page to PDF (except for first page)
+        if (i > 1) {
+          pdf.addPage()
+        }
+
+        // Convert HTML to PDF with text content preserved
+        await pdf.html(element, {
+          callback: (pdf) => {
+            // This callback is executed when the HTML has been rendered to the PDF
+            setPdfGenerationProgress(baseProgress + Math.round(progressPerPage * i))
+          },
+          x: 0,
+          y: 0,
+          html2canvas: {
+            scale: 0.35, // Further reduced scale to fit content properly
+            useCORS: true,
+            logging: false,
+            letterRendering: true,
+          },
+          width: 210, // A4 width in mm
+          windowWidth: 794, // Width in px used for scaling
+        })
       }
+
+      setPdfGenerationProgress(90)
 
       // Download the PDF
       pdf.save(`${resumeData.personal.firstName}_${resumeData.personal.lastName}_Resume.pdf`)
 
+      // Reset to first page
+      setCurrentPage(1)
+      setPdfGenerationProgress(100)
+
       toast({
         title: "Download complete",
-        description: "Your resume has been downloaded successfully.",
+        description: "Your ATS-friendly resume has been downloaded successfully.",
       })
+
+      // Reset the loading state after a short delay
+      setTimeout(() => {
+        setIsGeneratingPDF(false)
+        setPdfGenerationProgress(0)
+      }, 500)
     } catch (error) {
       console.error("Error generating PDF:", error)
+      setIsGeneratingPDF(false)
+      setPdfGenerationProgress(0)
+
       toast({
         title: "Download failed",
         description: "There was an error generating your PDF. Please try again.",
@@ -193,6 +234,23 @@ export default function EditorPage() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      {isGeneratingPDF && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-80 text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-green-600" />
+            <h3 className="text-lg font-semibold mb-2">Generating PDF</h3>
+            <p className="text-sm text-gray-600 mb-4">Please wait while we prepare your resume...</p>
+            <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+              <div
+                className="bg-green-600 h-2.5 rounded-full transition-all duration-300"
+                style={{ width: `${pdfGenerationProgress}%` }}
+              ></div>
+            </div>
+            <p className="text-xs text-gray-500">{pdfGenerationProgress}% complete</p>
+          </div>
+        </div>
+      )}
+
       <header className="border-b bg-white sticky top-0 z-10">
         <div className="container mx-auto py-3 px-6">
           <div className="flex justify-between items-center">
@@ -215,9 +273,27 @@ export default function EditorPage() {
                 <Printer className="h-4 w-4 mr-2" />
                 Print
               </Button>
-              <Button size="sm" onClick={handleDownload} className="bg-green-600 hover:bg-green-700">
-                <Download className="h-4 w-4 mr-2" />
-                Download
+              <ShareModal
+                resumeName={`${resumeData.personal.firstName} ${resumeData.personal.lastName} Resume`}
+                templateId={templateId}
+              />
+              <Button
+                size="sm"
+                onClick={handleDownload}
+                className="bg-green-600 hover:bg-green-700"
+                disabled={isGeneratingPDF}
+              >
+                {isGeneratingPDF ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </>
+                )}
               </Button>
             </div>
           </div>
@@ -364,7 +440,7 @@ export default function EditorPage() {
               </div>
             </div>
 
-            <div className="bg-white border rounded-md shadow-sm overflow-hidden" ref={resumePreviewRef}>
+            <div className="bg-white border rounded-md shadow-sm overflow-hidden resume-preview" ref={resumePreviewRef}>
               <ResumePreview
                 data={resumeData}
                 template={templateId}
