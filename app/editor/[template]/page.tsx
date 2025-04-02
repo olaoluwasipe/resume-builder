@@ -107,6 +107,7 @@ export default function EditorPage() {
       // Import jsPDF with html capability
       setPdfGenerationProgress(20)
       const { jsPDF } = await import("jspdf")
+      // const html2canvas = (await import("html2canvas-pro")).default
       await import("jspdf-html2canvas-pro")
       setPdfGenerationProgress(30)
 
@@ -118,6 +119,8 @@ export default function EditorPage() {
         putOnlyUsedFonts: true,
         floatPrecision: 16, // or "smart", preserves precision for calculations
       })
+
+      console.log("worked here");
 
       // For each page in the resume
       for (let i = 1; i <= totalPages; i++) {
@@ -135,10 +138,16 @@ export default function EditorPage() {
         // Get the content to convert
         const element = resumePreviewRef.current
 
+        // Fix unsupported Tailwind CSS colors
+        element.style.setProperty("color", "black", "important")
+        element.style.setProperty("background-color", "white", "important")
+
         // Add page to PDF (except for first page)
         if (i > 1) {
           pdf.addPage()
         }
+
+        console.log("wahala")
 
         // Convert HTML to PDF with text content preserved
         await pdf.html(element, {
@@ -158,6 +167,8 @@ export default function EditorPage() {
           windowWidth: 794, // Width in px used for scaling
         })
       }
+
+      console.log("wahala there")
 
       setPdfGenerationProgress(90)
 

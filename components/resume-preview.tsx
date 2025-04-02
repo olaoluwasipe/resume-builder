@@ -49,7 +49,7 @@ type ResumePreviewProps = {
 
 // A4 dimensions in pixels at 96 DPI
 // A4 is 210mm × 297mm, which is approximately 794px × 1123px at 96 DPI
-const container = document.querySelector('.resume-preview') as HTMLDivElement;
+// const container = document.querySelector('.resume-preview') as HTMLDivElement;
 const A4_WIDTH_PX = 794;
 const A4_HEIGHT_PX = 1143;
 const PAGE_MARGIN_PX = 40 // Margin on all sides

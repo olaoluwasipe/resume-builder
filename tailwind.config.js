@@ -73,6 +73,7 @@ module.exports = {
       },
     },
   },
+  colorFormat: "rgb", // Forces colors to use RGB instead of OKLCH
   plugins: [require("tailwindcss-animate")],
 }
 

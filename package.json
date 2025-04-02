@@ -47,7 +47,6 @@
     "html2canvas-pro": "^1.5.8",
     "input-otp": "1.4.2",
     "jspdf": "latest",
-    "jspdf-html2canvas": "latest",
     "jspdf-html2canvas-pro": "^1.5.221",
     "lucide-react": "^0.485.0",
     "next": "15.2.4",
